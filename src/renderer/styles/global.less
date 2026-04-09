@@ -1,0 +1,25 @@
+html {
+    font-size: 16px;
+}
+
+.ant-btn.ant-btn-sm.ant-btn-icon-only >span,
+.ant-btn.ant-btn-icon-only > span {
+    transform: scale(1);
+}
+
+// 滚动条
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: @color-border;
+    border-radius: @radius-base;
+
+    &:hover {
+        background: @color-text-disabled;
+    }
+}
