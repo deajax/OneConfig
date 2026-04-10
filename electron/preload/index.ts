@@ -74,7 +74,12 @@ const electronAPI = {
     ipcRenderer.invoke('env:getSystem', { key }),
 
   // 工具
-  platform: process.platform as NodeJS.Platform
+  platform: process.platform as NodeJS.Platform,
+
+  // 窗口控制（frameless 模式下需要）
+  minimizeWindow: () => ipcRenderer.invoke('win:minimize'),
+  maximizeWindow: () => ipcRenderer.invoke('win:maximize'),
+  closeWindow: () => ipcRenderer.invoke('win:close')
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

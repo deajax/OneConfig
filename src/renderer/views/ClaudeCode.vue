@@ -10,7 +10,7 @@
 					:icon="h(CheckOutlined)"
 					@click="handleApply"
 				>
-					应用到 .zshrc
+					{{ applyButtonText }}
 				</a-button>
 				<a-button :icon="h(PlusOutlined)" @click="handleAdd">
 					添加模型商
@@ -140,8 +140,8 @@
 								/>
 								应用
 							</span>
-							<span>
-								<EditOutlined @click="handleEdit(profile)" />
+							<span @click="handleEdit(profile)">
+								<EditOutlined />
 								编辑
 							</span>
 							<a-popconfirm
@@ -314,6 +314,11 @@
 		() => findMenuByKey("/config/claude-code")?.title || "Claude Code"
 	);
 	const menuIcon = computed(() => findMenuByKey("/config/claude-code")?.icon());
+	const applyButtonText = computed(() => {
+		return window.electronAPI.platform === 'win32'
+			? '应用到系统环境变量'
+			: '应用到 .zshrc'
+	})
 
 	onMounted(() => {
 		providerStore.loadProfiles();
@@ -340,7 +345,7 @@
 		try {
 			const res = await providerStore.applyProfile();
 			if (res.success) {
-				message.success("已应用到 .zshrc，请重启 Claude Code 终端会话以生效");
+				message.success(res.message || "已应用，请重启终端以生效");
 			} else {
 				message.error(res.message || "应用失败");
 			}

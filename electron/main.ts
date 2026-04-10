@@ -4,9 +4,10 @@ import { registerJsonHandlers } from './ipc/json'
 import { registerEnvHandlers } from './ipc/env'
 import { registerTerminalHandlers } from './ipc/terminal'
 import { registerProviderHandlers, seedDefaultProviders } from './ipc/providers'
-import { join } from 'path'
+import { ipcMain } from 'electron'
 
 const isDev = !app.isPackaged
+let mainWindow: BrowserWindow | null = null
 
 function createWindow() {
   const isMac = process.platform === 'darwin'
@@ -15,8 +16,10 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    // macOS: hidden 让标题栏不显示文字，但保留交通灯按钮（不用 hiddenInset 避免 inset 偏移）
+    // macOS: hidden 让标题栏不显示文字，但保留交通灯按钮
+    // Windows: frameless 隐藏原生标题栏
     titleBarStyle: isMac ? 'hidden' : 'default',
+    frame: isMac ? undefined : false,
     // macOS 上给交通灯按钮预留偏移，让其在内容区正确呈现
     trafficLightPosition: isMac ? { x: 14, y: 16 } : undefined,
     webPreferences: {
@@ -48,9 +51,14 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  // 窗口控制 IPC
+  ipcMain.handle('win:minimize', () => mainWindow?.minimize())
+  ipcMain.handle('win:maximize', () => mainWindow?.isMaximized() ? mainWindow?.unmaximize() : mainWindow?.maximize())
+  ipcMain.handle('win:close', () => mainWindow?.close())
+
   const templatePath = join(__dirname, '../../public/templates/providers.json')
   await seedDefaultProviders(templatePath)
-  createWindow()
+  mainWindow = createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

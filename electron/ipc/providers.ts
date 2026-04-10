@@ -1,8 +1,10 @@
-import { ipcMain } from 'electron'
-import { app } from 'electron'
+import { ipcMain, app } from 'electron'
 import fs from 'fs-extra'
 import { homedir } from 'os'
 import { join } from 'path'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+const execAsync = promisify(exec)
 
 const PROVIDERS_PATH = join(app.getPath('userData'), 'providers.json')
 const BLOCK_START = '# >>> OneConfig managed block >>>'
@@ -136,34 +138,46 @@ export function registerProviderHandlers() {
   })
 
   ipcMain.handle('providers:apply', async (_e, { shellFile }: { shellFile: string }) => {
-    const resolved = resolveShellFile(shellFile)
-    if (!resolved) throw new Error('不允许的 shell 文件')
-
     const data = await loadProviders()
     const active = data.profiles.find(p => p.isActive)
     if (!active) return { success: false, message: '没有已激活的 Provider' }
 
+    const envEntries = Object.entries(active.envVars).filter(([_, v]) => v.trim() !== '')
+
+    // Windows: 使用 setx 写入用户级环境变量（无需管理员）
+    if (process.platform === 'win32') {
+      for (const [key, value] of envEntries) {
+        if (!/^[\w]+$/.test(key)) continue
+        const escapedValue = value.replace(/"/g, '\\"')
+        const cmd = `setx "${key}" "${escapedValue}"`
+        try {
+          await execAsync(cmd)
+        } catch (err: any) {
+          return { success: false, message: `设置 ${key} 失败: ${err.message}` }
+        }
+      }
+      return { success: true, message: '已写入 Windows 系统环境变量，请重启终端以生效' }
+    }
+
+    // macOS / Linux: 写入 shell 配置文件
+    const resolved = resolveShellFile(shellFile)
+    if (!resolved) throw new Error('不允许的 shell 文件')
+
     await fs.ensureFile(resolved)
     const original = await fs.readFile(resolved, 'utf-8')
 
-    // 构建 export 块
-    const lines = Object.entries(active.envVars)
-      .filter(([_, v]) => v.trim() !== '')
-      .map(([k, v]) => `export ${k}="${v}"`)
+    const lines = envEntries.map(([k, v]) => `export ${k}="${v}"`)
     const blockContent = lines.join('\n')
 
-    // 移除旧托管块
     const blockRegex = new RegExp(
       `\\n?${escapeRegex(BLOCK_START)}[\\s\\S]*?${escapeRegex(BLOCK_END)}\\n?`,
       'g'
     )
     let cleaned = original.replace(blockRegex, '')
 
-    // 追加新块
     const managed = `\n${BLOCK_START}\n${blockContent}\n${BLOCK_END}\n`
     const newContent = cleaned.trimEnd() + managed
 
-    // 备份
     const backupPath = resolved + '.oneconfig.bak'
     await fs.writeFile(backupPath, original, 'utf-8')
     await fs.writeFile(resolved, newContent, 'utf-8')
