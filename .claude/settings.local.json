@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(cat ~/.claude/session-env/a27a20d3-c1db-469b-bd74-2fc21c9284e0/*)",
+      "WebFetch(domain:antdv.com)",
+      "Bash(npx vue-tsc:*)"
     ]
   }
 }

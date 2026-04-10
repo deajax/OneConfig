@@ -53,6 +53,20 @@ const electronAPI = {
     return () => ipcRenderer.removeListener(channel, handler)
   },
 
+  // Provider 配置
+  listProviders: (): Promise<Array<{ id: string; name: string; icon: string; envVars: Record<string, string>; models?: string[]; helpUrl?: string; helpTip?: string; isActive: boolean; createdAt: number; updatedAt: number }>> =>
+    ipcRenderer.invoke('providers:list'),
+  createProvider: (profile: { name: string; icon: string; envVars: Record<string, string>; models?: string[]; isActive: boolean }): Promise<{ id: string; name: string; icon: string; envVars: Record<string, string>; models?: string[]; isActive: boolean; createdAt: number; updatedAt: number }> =>
+    ipcRenderer.invoke('providers:create', { profile }),
+  updateProvider: (id: string, profile: { name?: string; icon?: string; envVars?: Record<string, string>; models?: string[]; isActive?: boolean }): Promise<{ id: string; name: string; icon: string; envVars: Record<string, string>; models?: string[]; isActive: boolean; createdAt: number; updatedAt: number } | null> =>
+    ipcRenderer.invoke('providers:update', { id, profile }),
+  deleteProvider: (id: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('providers:delete', { id }),
+  activateProvider: (id: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('providers:activate', { id }),
+  applyProvider: (shellFile: string): Promise<{ success: boolean; message?: string }> =>
+    ipcRenderer.invoke('providers:apply', { shellFile }),
+
   // Windows 系统环境变量（仅 win32）
   setSystemEnv: (key: string, value: string): Promise<{ success: boolean }> =>
     ipcRenderer.invoke('env:setSystem', { key, value }),

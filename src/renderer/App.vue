@@ -1,98 +1,150 @@
 <template>
-    <a-config-provider :theme="antdTheme">
-        <div class="app-shell flex h-screen overflow-hidden bg-gray-50" style="-webkit-app-region: no-drag">
-            <!-- 侧边导航 -->
-            <aside class="app-sider w-[200px] shrink-0 flex flex-col bg-white border-r border-gray-100 select-none">
-                <!-- macOS 交通灯占位（可拖拽） -->
-                <div class="app-titlebar h-[48px] shrink-0 border-b border-gray-100" style="-webkit-app-region: drag" />
-
-                <a-menu
-                    v-model:selectedKeys="selectedKeys"
-                    v-model:openKeys="openKeys"
-                    mode="inline"
-                    :inline-collapsed="collapsed"
-                    class="border-none"
-                    @click="handleMenuClick"
-                >
-                    <a-menu-item key="/config">
-                        <template #icon><CodeOutlined /></template>
-                        <span>配置编辑</span>
-                    </a-menu-item>
-                    <a-menu-item key="/env">
-                        <template #icon><DatabaseOutlined /></template>
-                        <span>环境变量</span>
-                    </a-menu-item>
-                    <a-menu-item key="/terminal">
-                        <template #icon><CodeSandboxOutlined /></template>
-                        <span>终端</span>
-                    </a-menu-item>
-                    <a-sub-menu key="tools">
-                        <template #title>
-                            <span><ToolOutlined /><span>工具配置</span></span>
-                        </template>
-                        <a-menu-item key="/config/claude-code">Claude Code</a-menu-item>
-                        <a-menu-item key="/config/openclaw">OpenClaw</a-menu-item>
-                    </a-sub-menu>
-                </a-menu>
-            </aside>
-
-            <!-- 主内容区 -->
-            <main class="flex-1 overflow-hidden flex flex-col min-w-0">
-                <AppHeader />
-                <div class="flex-1 overflow-hidden flex flex-col">
-                    <router-view v-slot="{ Component }">
-                        <transition name="fade" mode="out-in">
-                            <component :is="Component" />
-                        </transition>
-                    </router-view>
-                </div>
-            </main>
-        </div>
-    </a-config-provider>
+	<a-config-provider :theme="antdTheme" :locale="locale" :autoInsertSpaceInButton="false">
+		<a-layout class="h-screen overflow-hidden">
+			<a-layout-header
+				class="px-6! h-12! leading-12! bg-transparent!"
+				style="-webkit-app-region: drag"
+			>
+				<header class="relative flex items-center h-full">
+					<!-- 收起/展开按钮 -->
+					<div class="pl-18" style="-webkit-app-region: no-drag">
+						<a-button
+							type="text"
+							:icon="h(LayoutOutlined)"
+							@click="collapsed = !collapsed"
+						/>
+					</div>
+					<div class="absolute h-full top-0 bottom-0 left-1/2 -translate-x-1/2">
+						<h3 class="">OneConfig</h3>
+					</div>
+					<!-- 右侧操作区 -->
+					<div
+						class="flex items-center gap-2 ml-auto"
+						style="-webkit-app-region: no-drag"
+					>
+						<a-button
+							type="text"
+							:icon="
+								h(QuestionCircleOutlined, {
+									style: 'font-size: 18px;',
+								})
+							"
+							@click="openHelp"
+						/>
+						<a-button
+							type="text"
+							:icon="h(GithubOutlined, { style: 'font-size: 18px;' })"
+							@click="openGithub"
+						/>
+					</div>
+				</header>
+			</a-layout-header>
+			<!-- 主内容 -->
+			<a-layout>
+				<!-- 侧边栏 -->
+				<a-layout-sider
+					v-model:collapsed="collapsed"
+					:trigger="null"
+					collapsible
+					:width="200"
+                    :collapsedWidth="64"
+					theme="light"
+					class="layout-sider p-2! bg-transparent!"
+				>
+					<!-- 导航菜单 -->
+					<a-menu
+						v-model:selectedKeys="selectedKeys"
+						mode="inline"
+						:items="menuItems"
+						class="layout-sider-menu border-none! bg-transparent!"
+						@click="handleMenuClick"
+					/>
+				</a-layout-sider>
+				<a-layout-content class="overflow-hidden bg-white! rounded-tl-xl">
+					<router-view v-slot="{ Component }">
+						<transition name="fade" mode="out-in">
+							<component :is="Component" />
+						</transition>
+					</router-view>
+				</a-layout-content>
+			</a-layout>
+		</a-layout>
+	</a-config-provider>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { CodeOutlined, DatabaseOutlined, CodeSandboxOutlined, ToolOutlined } from "@ant-design/icons-vue";
-import { theme } from "ant-design-vue";
-import AppHeader from "@/components/AppHeader.vue";
+	import { h, ref, watch, computed } from "vue";
+	import { useRouter, useRoute } from "vue-router";
+	import {
+		LayoutOutlined,
+		GithubOutlined,
+		QuestionCircleOutlined,
+	} from "@ant-design/icons-vue";
+	import { theme } from "ant-design-vue";
+	import { menuItems } from "@/config/menu";
+    import zhCN from 'ant-design-vue/es/locale/zh_CN';
 
-const router = useRouter()
-const route = useRoute()
+    const locale = computed(() => zhCN);
 
-const antdTheme = {
-    algorithm: theme.defaultAlgorithm,
-    token: {
-        colorPrimary: "#1677ff",
-        borderRadius: 6,
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-    },
-};
+	function openGithub() {
+		window.open("https://github.com", "_blank");
+	}
 
-const collapsed = ref(false)
-const selectedKeys = ref<string[]>([])
-const openKeys = ref<string[]>([])
+	function openHelp() {
+		window.open("https://github.com", "_blank");
+	}
 
-watch(() => route.path, (path) => {
-    selectedKeys.value = [path]
-    if (path.startsWith('/config/edit')) {
-        openKeys.value = ['tools']
-    }
-}, { immediate: true })
+	const router = useRouter();
+	const route = useRoute();
 
-function handleMenuClick({ key }: { key: string }) {
-    router.push(key)
-}
+	const antdTheme = {
+		algorithm: theme.defaultAlgorithm,
+		token: {
+			colorPrimary: "#1677ff",
+			borderRadius: 6,
+			fontFamily:
+				"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+		},
+	};
+
+	const collapsed = ref(true);
+	const selectedKeys = ref<string[]>([]);
+
+	watch(
+		() => route.path,
+		(path) => {
+			selectedKeys.value = [path];
+		},
+		{ immediate: true }
+	);
+
+	function handleMenuClick({ key }: { key: string }) {
+		router.push(key);
+	}
+
+	const antdMenuItems = computed(() =>
+		menuItems.map((item) => ({
+			key: item.key,
+			icon: item.icon,
+			label: item.label,
+		}))
+	);
 </script>
 
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 0.15s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-}
+<style lang="less" scoped>
+	.fade-enter-active,
+	.fade-leave-active {
+		transition: opacity 0.15s ease;
+	}
+	.fade-enter-from,
+	.fade-leave-to {
+		opacity: 0;
+	}
+
+	.layout-sider-menu {
+		:deep(.ant-menu-item-selected) {
+            background: @color-primary;
+            color: white;
+		}
+	}
 </style>

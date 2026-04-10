@@ -3,6 +3,8 @@ import { join } from 'path'
 import { registerJsonHandlers } from './ipc/json'
 import { registerEnvHandlers } from './ipc/env'
 import { registerTerminalHandlers } from './ipc/terminal'
+import { registerProviderHandlers, seedDefaultProviders } from './ipc/providers'
+import { join } from 'path'
 
 const isDev = !app.isPackaged
 
@@ -28,6 +30,7 @@ function createWindow() {
   registerJsonHandlers(win)
   registerEnvHandlers()
   registerTerminalHandlers(win)
+  registerProviderHandlers()
 
   if (isDev) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL']!)
@@ -44,7 +47,9 @@ function createWindow() {
   return win
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  const templatePath = join(__dirname, '../../public/templates/providers.json')
+  await seedDefaultProviders(templatePath)
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

@@ -1,21 +1,15 @@
 <template>
-  <div class="flex flex-col h-full">
-    <!-- 注入头部中区：macOS/Linux 下显示视图切换 -->
-    <Teleport v-if="headerStore.centerEl && !isWindows" :to="headerStore.centerEl">
-      <a-segmented v-model:value="activeView" :options="viewOptions" size="small" />
-    </Teleport>
-
-    <!-- 注入头部右区：工具栏 -->
-    <Teleport v-if="headerStore.rightEl" :to="headerStore.rightEl">
+  <PageContainer :show-back="false">
+    <template #extra>
       <!-- 可视化视图工具栏 -->
-      <div v-if="activeView === 'visual'" class="flex items-center gap-2">
-        <a-button type="primary" :disabled="!isDirty" :loading="saving" @click="saveVisual">
-          <template #icon><SaveOutlined /></template>
+      <template v-if="activeView === 'visual'">
+        <a-button type="primary" :disabled="!isDirty" :loading="saving" size="small" @click="saveVisual">
+          <template #icon><h(SaveOutlined) /></template>
           保存
         </a-button>
-      </div>
+      </template>
       <!-- 源码视图工具栏（仅 macOS/Linux） -->
-      <div v-else class="flex items-center gap-2">
+      <template v-else>
         <a-select
           v-model:value="selectedShellFile"
           :options="shellFileOptions"
@@ -24,18 +18,18 @@
           @change="loadShellFile"
         />
         <a-button size="small" :loading="loadingShell" @click="loadShellFile">
-          <template #icon><ReloadOutlined /></template>
+          <template #icon><h(ReloadOutlined) /></template>
         </a-button>
         <a-button type="primary" size="small" :disabled="!shellDirty" :loading="savingShell" @click="saveShellFile">
-          <template #icon><SaveOutlined /></template>
+          <template #icon><h(SaveOutlined) /></template>
           保存
         </a-button>
         <a-tag v-if="shellDirty" color="warning" style="margin:0">未保存</a-tag>
-      </div>
-    </Teleport>
+      </template>
+    </template>
 
     <!-- ── 可视化视图 ── -->
-    <div v-show="activeView === 'visual'" class="flex-1 overflow-hidden flex flex-col">
+    <div v-show="activeView === 'visual'" class="flex flex-col h-full overflow-hidden">
       <!-- Windows 提示 -->
       <a-alert
         v-if="isWindows"
@@ -66,7 +60,6 @@
           size="middle"
           class="env-table"
         >
-          <!-- 变量名列 -->
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'key'">
               <a-input
@@ -86,7 +79,6 @@
               >{{ record.key || '双击编辑' }}</span>
             </template>
 
-            <!-- 变量值列 -->
             <template v-else-if="column.key === 'value'">
               <a-input
                 v-if="editingId === record.id && editingField === 'value'"
@@ -105,7 +97,6 @@
               >{{ record.value || '双击编辑' }}</span>
             </template>
 
-            <!-- 注释/说明列 -->
             <template v-else-if="column.key === 'comment'">
               <a-input
                 v-if="editingId === record.id && editingField === 'comment'"
@@ -123,7 +114,6 @@
               >{{ record.comment || '' }}</span>
             </template>
 
-            <!-- 操作列 -->
             <template v-else-if="column.key === 'action'">
               <a-space size="small">
                 <a-typography-link @click="startEdit(record, 'key')">编辑</a-typography-link>
@@ -133,10 +123,9 @@
           </template>
         </a-table>
 
-        <!-- 添加一行 -->
         <div class="px-4 py-3 border-t border-gray-100">
           <a-button type="dashed" class="w-full text-gray-400 hover:text-blue-500! hover:border-blue-400!" @click="addRow">
-            <template #icon><PlusOutlined /></template>
+            <template #icon><h(PlusOutlined) /></template>
             添加变量
           </a-button>
         </div>
@@ -155,32 +144,21 @@
       warning="此操作将修改系统级环境变量，需要管理员权限（UAC 弹窗）。"
       @confirm="doSaveWin"
     />
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { h, ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { ReloadOutlined, SaveOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { monaco } from '@/monaco'
 import PermissionDialog from '@/components/PermissionDialog.vue'
-import { useHeaderStore } from '@/stores/headerStore'
-
-const headerStore = useHeaderStore()
-onMounted(() => {
-  headerStore.setTitle('环境变量')
-  headerStore.setBack(null)
-})
-onUnmounted(() => headerStore.setTitle(''))
+import PageContainer from '@/components/PageContainer.vue'
 
 const isWindows = window.electronAPI.platform === 'win32'
 
 // ── 视图切换（仅 macOS/Linux） ──
 const activeView = ref<'visual' | 'source'>('visual')
-const viewOptions = [
-  { label: '可视化', value: 'visual' },
-  { label: '源码', value: 'source' }
-]
 
 // ── 环境变量行数据 ──
 interface EnvRow {
@@ -203,29 +181,10 @@ watch(envRows, () => { isDirty.value = true }, { deep: true })
 
 // ── 表格列定义 ──
 const tableColumns = [
-  {
-    title: '变量名',
-    key: 'key',
-    width: 200,
-    ellipsis: true
-  },
-  {
-    title: '变量值',
-    key: 'value',
-    ellipsis: true
-  },
-  {
-    title: '注释 / 说明',
-    key: 'comment',
-    width: 220,
-    ellipsis: true
-  },
-  {
-    title: '操作',
-    key: 'action',
-    width: 100,
-    fixed: 'right' as const
-  }
+  { title: '变量名', key: 'key', width: 200, ellipsis: true },
+  { title: '变量值', key: 'value', ellipsis: true },
+  { title: '注释 / 说明', key: 'comment', width: 220, ellipsis: true },
+  { title: '操作', key: 'action', width: 100, fixed: 'right' as const }
 ]
 
 // ── 内联编辑 ──
@@ -278,7 +237,6 @@ const shellFileOptions = [
 ]
 const loadingShell = ref(false)
 
-// 解析 shell 文件中的 export 语句为 EnvRow 列表
 function parseShellExports(content: string): EnvRow[] {
   const rows: EnvRow[] = []
   const lines = content.split('\n')
@@ -294,7 +252,6 @@ function parseShellExports(content: string): EnvRow[] {
     if (match) {
       const key = match[1]
       let val = match[2].trim()
-      // 去除引号
       if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
         val = val.slice(1, -1)
       }
@@ -307,7 +264,6 @@ function parseShellExports(content: string): EnvRow[] {
   return rows
 }
 
-// 将 EnvRow 列表序列化回 export 语句
 function serializeToExports(rows: EnvRow[]): string {
   return rows
     .filter(r => r.key.trim())
@@ -323,14 +279,11 @@ async function loadShellFile() {
   loadingShell.value = true
   try {
     const content = await window.electronAPI.readShellEnv(selectedShellFile.value)
-    // 尝试解析托管块内容
     const blockMatch = content.match(/# >>> OneConfig managed block >>>([\s\S]*?)# <<< OneConfig managed block <<</s)
     const blockContent = blockMatch ? blockMatch[1].trim() : ''
     envRows.value = blockContent ? parseShellExports(blockContent) : []
-    // 如果没有托管块，给一个空行让用户开始
     if (envRows.value.length === 0) envRows.value = [newRow()]
     isDirty.value = false
-    // 同步到源码编辑器
     if (shellEditor) {
       shellEditor.setValue(content)
       shellDirty.value = false
@@ -347,20 +300,17 @@ async function saveVisual() {
   saving.value = true
   try {
     if (isWindows) {
-      // Windows: 收集所有变量，弹出权限确认
       pendingCommands.value = envRows.value
         .filter(r => r.key.trim())
         .map(r => `setx "${r.key}" "${r.value}" /M`)
       if (pendingCommands.value.length === 0) { saving.value = false; return }
       showPermDialog.value = true
     } else {
-      // macOS/Linux: 序列化为 shell export 块写入
       const block = serializeToExports(envRows.value)
       const res = await window.electronAPI.writeShellEnv(selectedShellFile.value, block)
       if (res.success) {
         isDirty.value = false
         message.success('已保存，修改在新开终端后生效')
-        // 重新加载以同步源码视图
         await loadShellFile()
       }
     }
@@ -401,7 +351,6 @@ async function saveShellFile() {
     if (res.success) {
       shellDirty.value = false
       message.success('保存成功')
-      // 重新解析可视化视图
       envRows.value = parseShellExports(content)
       isDirty.value = false
     }
@@ -412,7 +361,6 @@ async function saveShellFile() {
   }
 }
 
-// 切换到源码视图时同步最新内容
 watch(activeView, async (v) => {
   if (v === 'source' && shellEditor) {
     requestAnimationFrame(() => shellEditor?.layout())
@@ -442,7 +390,6 @@ onMounted(async () => {
   if (!isWindows) {
     await loadShellFile()
   } else {
-    // Windows: 初始给一个空行
     envRows.value = [newRow()]
     isDirty.value = false
   }
@@ -454,7 +401,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 表格行双击区域填满单元格 */
 :deep(.env-table .ant-table-cell) {
   cursor: default;
   padding: 8px 12px;

@@ -34,7 +34,28 @@ declare global {
       setSystemEnv(key: string, value: string): Promise<{ success: boolean }>
       getSystemEnv(key: string): Promise<string | null>
 
+      // Provider 配置
+      listProviders(): Promise<ProviderProfile[]>
+      createProvider(profile: { name: string; icon: string; envVars: Record<string, string>; models?: string[]; isActive: boolean }): Promise<ProviderProfile>
+      updateProvider(id: string, profile: { name?: string; icon?: string; envVars?: Record<string, string>; models?: string[]; isActive?: boolean }): Promise<ProviderProfile | null>
+      deleteProvider(id: string): Promise<{ success: boolean }>
+      activateProvider(id: string): Promise<{ success: boolean }>
+      applyProvider(shellFile: string): Promise<{ success: boolean; message?: string }>
+
       platform: NodeJS.Platform
+    }
+
+    interface ProviderProfile {
+      id: string
+      name: string
+      icon: string
+      envVars: Record<string, string>
+      models?: string[]
+      helpUrl?: string
+      helpTip?: string
+      isActive: boolean
+      createdAt: number
+      updatedAt: number
     }
   }
 }

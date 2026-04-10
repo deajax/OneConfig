@@ -1,0 +1,54 @@
+[
+  {
+    "name": "阿里云百炼",
+    "icon": "🔵",
+    "envVars": {
+      "ANTHROPIC_BASE_URL": "https://dashscope.aliyuncs.com/apps/anthropic",
+      "ANTHROPIC_API_KEY": "",
+      "ANTHROPIC_MODEL": "qwen3.6-plus"
+    },
+    "models": ["qwen3.6-plus", "qwen3.5-plus", "qwen3.5-turbo", "qwen3-235b", "qwen2.5-coder-32b"],
+    "helpUrl": "https://bailian.console.aliyun.com/?apiKey=1#/api-key",
+    "helpTip": "在阿里云百炼控制台获取 API Key",
+    "isActive": false
+  },
+  {
+    "name": "DeepSeek",
+    "icon": "🟢",
+    "envVars": {
+      "ANTHROPIC_BASE_URL": "https://api.deepseek.com/v1",
+      "ANTHROPIC_API_KEY": "",
+      "ANTHROPIC_MODEL": "deepseek-chat"
+    },
+    "models": ["deepseek-chat", "deepseek-reasoner"],
+    "helpUrl": "https://platform.deepseek.com/api_keys",
+    "helpTip": "在 DeepSeek 开放平台获取 API Key",
+    "isActive": false
+  },
+  {
+    "name": "OpenRouter",
+    "icon": "🟠",
+    "envVars": {
+      "ANTHROPIC_BASE_URL": "https://openrouter.ai/api/v1",
+      "ANTHROPIC_API_KEY": "",
+      "ANTHROPIC_MODEL": "anthropic/claude-sonnet-4-5"
+    },
+    "models": ["anthropic/claude-sonnet-4-5", "anthropic/claude-opus-4-5", "anthropic/claude-haiku-4-5", "anthropic/claude-3.5-sonnet", "openai/gpt-4o", "openai/gpt-4o-mini", "google/gemini-2.5-pro", "google/gemini-2.5-flash", "meta-llama/llama-3.3-70b-instruct", "openrouter/free"],
+    "helpUrl": "https://openrouter.ai/settings/keys",
+    "helpTip": "在 OpenRouter 设置页面创建 API Key",
+    "isActive": false
+  },
+  {
+    "name": "OpenAI",
+    "icon": "⚪",
+    "envVars": {
+      "ANTHROPIC_BASE_URL": "https://api.openai.com/v1",
+      "ANTHROPIC_API_KEY": "",
+      "ANTHROPIC_MODEL": "gpt-4o"
+    },
+    "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o1", "o3-mini", "o4-mini"],
+    "helpUrl": "https://platform.openai.com/api-keys",
+    "helpTip": "在 OpenAI 平台获取 API Key",
+    "isActive": false
+  }
+]
