@@ -47,10 +47,20 @@ export const useProviderStore = defineStore('provider', () => {
     const res = await window.electronAPI.activateProvider(id)
     if (!res.success) return
     profiles.value.forEach(p => p.isActive = p.id === id)
-    applied.value = false
+    await applyProfile()
   }
 
-  async function applyProfile(shellFile = '.zshrc') {
+  async function applyProfile(shellFile = '.zshrc', modelOverrides?: Map<string, string>) {
+    // 如果有待应用的模型更改，先更新到 profiles
+    if (modelOverrides && modelOverrides.size > 0) {
+      for (const [id, model] of modelOverrides) {
+        const idx = profiles.value.findIndex(p => p.id === id)
+        if (idx !== -1) {
+          profiles.value[idx].envVars = { ...profiles.value[idx].envVars, ANTHROPIC_MODEL: model }
+          await window.electronAPI.updateProvider(id, { envVars: profiles.value[idx].envVars })
+        }
+      }
+    }
     const res = await window.electronAPI.applyProvider(shellFile)
     if (res.success) {
       applied.value = true
@@ -64,6 +74,7 @@ export const useProviderStore = defineStore('provider', () => {
     const newEnvVars = { ...profiles.value[idx].envVars, ANTHROPIC_MODEL: model }
     await window.electronAPI.updateProvider(id, { envVars: newEnvVars })
     profiles.value[idx].envVars = newEnvVars
+    // 标记未应用到 shell
     applied.value = false
   }
 

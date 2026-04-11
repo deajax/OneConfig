@@ -1,7 +1,7 @@
 [
   {
     "name": "阿里云百炼",
-    "icon": "🔵",
+    "icon": "bailian.svg",
     "envVars": {
       "ANTHROPIC_BASE_URL": "https://dashscope.aliyuncs.com/apps/anthropic",
       "ANTHROPIC_API_KEY": "",
@@ -14,7 +14,7 @@
   },
   {
     "name": "DeepSeek",
-    "icon": "🟢",
+    "icon": "deepseek.svg",
     "envVars": {
       "ANTHROPIC_BASE_URL": "https://api.deepseek.com/v1",
       "ANTHROPIC_API_KEY": "",
@@ -27,7 +27,7 @@
   },
   {
     "name": "OpenRouter",
-    "icon": "🟠",
+    "icon": "openrouter.svg",
     "envVars": {
       "ANTHROPIC_BASE_URL": "https://openrouter.ai/api/v1",
       "ANTHROPIC_API_KEY": "",
@@ -40,7 +40,7 @@
   },
   {
     "name": "OpenAI",
-    "icon": "⚪",
+    "icon": "openai.svg",
     "envVars": {
       "ANTHROPIC_BASE_URL": "https://api.openai.com/v1",
       "ANTHROPIC_API_KEY": "",

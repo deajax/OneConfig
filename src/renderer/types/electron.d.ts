@@ -41,6 +41,8 @@ declare global {
       deleteProvider(id: string): Promise<{ success: boolean }>
       activateProvider(id: string): Promise<{ success: boolean }>
       applyProvider(shellFile: string): Promise<{ success: boolean; message?: string }>
+      uploadProviderIcon(fileName: string, data: string): Promise<{ success: boolean; fileName: string }>
+      getProviderIconData(icon: string): Promise<string>
 
       platform: NodeJS.Platform
     }

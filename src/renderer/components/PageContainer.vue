@@ -1,27 +1,34 @@
 <template>
-	<div class="flex flex-col h-full overflow-hidden">
-		<a-page-header
-			:title="resolvedTitle"
-			:sub-title="subTitle"
-			v-bind="showBack ? { 'back-icon': h(ArrowLeftOutlined), onBack: handleBack } : {}"
-			class="px-4! py-3!"
-		>
-			<template #avatar>
-				<a-avatar class="bg-blue-50! text-blue-600!" v-if="resolvedAvatar">
-					<template #icon><component :is="resolvedAvatar" /></template>
-				</a-avatar>
-			</template>
-			<template #extra>
-				<slot name="extra" />
-			</template>
-			<template #tags>
-				<slot name="tags" />
-			</template>
-			<template #footer v-if="$slots.footer">
-				<slot name="footer" />
-			</template>
-		</a-page-header>
-		<div class="flex-1 overflow-hidden min-h-0">
+	<div class="flex flex-col h-full overflow-y-auto">
+		<a-affix>
+			<a-page-header
+				:title="resolvedTitle"
+				:sub-title="subTitle"
+				v-bind="
+					showBack
+						? { 'back-icon': h(ArrowLeftOutlined), onBack: handleBack }
+						: {}
+				"
+				class="px-4! py-3!"
+				ghost
+			>
+				<template #avatar>
+					<a-avatar class="bg-blue-50! text-blue-600!" v-if="resolvedAvatar">
+						<template #icon><component :is="resolvedAvatar" /></template>
+					</a-avatar>
+				</template>
+				<template #extra>
+					<slot name="extra" />
+				</template>
+				<template #tags>
+					<slot name="tags" />
+				</template>
+				<template #footer v-if="$slots.footer">
+					<slot name="footer" />
+				</template>
+			</a-page-header>
+		</a-affix>
+		<div class="px-4">
 			<slot />
 		</div>
 	</div>
@@ -69,9 +76,9 @@
 </script>
 
 <style lang="less" scoped>
-:deep(.ant-avatar) {
-	&.ant-avatar-icon {
-		font-size: 1rem;
+	:deep(.ant-avatar) {
+		&.ant-avatar-icon {
+			font-size: 1rem;
+		}
 	}
-}
 </style>

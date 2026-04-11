@@ -66,6 +66,10 @@ const electronAPI = {
     ipcRenderer.invoke('providers:activate', { id }),
   applyProvider: (shellFile: string): Promise<{ success: boolean; message?: string }> =>
     ipcRenderer.invoke('providers:apply', { shellFile }),
+  uploadProviderIcon: (fileName: string, data: string): Promise<{ success: boolean; fileName: string }> =>
+    ipcRenderer.invoke('providers:uploadIcon', { fileName, data }),
+  getProviderIconData: (icon: string): Promise<string> =>
+    ipcRenderer.invoke('providers:iconData', { icon }),
 
   // Windows 系统环境变量（仅 win32）
   setSystemEnv: (key: string, value: string): Promise<{ success: boolean }> =>

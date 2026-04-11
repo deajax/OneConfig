@@ -1,12 +1,13 @@
 import { ipcMain, app } from 'electron'
 import fs from 'fs-extra'
 import { homedir } from 'os'
-import { join } from 'path'
+import { join, basename, extname } from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 const execAsync = promisify(exec)
 
 const PROVIDERS_PATH = join(app.getPath('userData'), 'providers.json')
+const PROVIDER_ICONS_PATH = join(app.getPath('userData'), 'provider-icons')
 const BLOCK_START = '# >>> OneConfig managed block >>>'
 const BLOCK_END = '# <<< OneConfig managed block <<<'
 const ALLOWED_SHELL_FILES = ['.zshrc', '.bashrc', '.bash_profile', '.profile', '.zprofile']
@@ -182,5 +183,40 @@ export function registerProviderHandlers() {
     await fs.writeFile(backupPath, original, 'utf-8')
     await fs.writeFile(resolved, newContent, 'utf-8')
     return { success: true }
+  })
+
+  // 上传 Provider 图标
+  ipcMain.handle('providers:uploadIcon', async (_e, { fileName, data }: { fileName: string; data: string }) => {
+    await fs.ensureDir(PROVIDER_ICONS_PATH)
+    const ext = extname(fileName)
+    const safeName = `${Date.now()}_${basename(fileName).replace(/[^a-zA-Z0-9._-]/g, '_')}`
+    const dest = join(PROVIDER_ICONS_PATH, safeName)
+    const buffer = Buffer.from(data.split(',')[1], 'base64')
+    await fs.writeFile(dest, buffer)
+    return { success: true, fileName: safeName }
+  })
+
+  // 获取图标 base64 data URL
+  ipcMain.handle('providers:iconData', async (_e, { icon }: { icon: string }) => {
+    if (!icon) return ''
+    // 内置图标：来自 assets 目录
+    if (/\.(svg|png|jpe?g|gif|webp|ico)$/i.test(icon)) {
+      const assetsPath = join(__dirname, '../../src/renderer/assets', icon)
+      if (await fs.pathExists(assetsPath)) {
+        const buf = await fs.readFile(assetsPath)
+        const ext = extname(icon).slice(1)
+        const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`
+        return `data:${mime};base64,${buf.toString('base64')}`
+      }
+      // 上传的图标：provider-icons 目录
+      const iconPath = join(PROVIDER_ICONS_PATH, icon)
+      if (await fs.pathExists(iconPath)) {
+        const buf = await fs.readFile(iconPath)
+        const ext = extname(icon).slice(1)
+        const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`
+        return `data:${mime};base64,${buf.toString('base64')}`
+      }
+    }
+    return ''
   })
 }

@@ -5,6 +5,7 @@ import {
   CodeOutlined,
   CodeSandboxOutlined
 } from '@ant-design/icons-vue'
+import { RiClaudeFill } from "@remixicon/vue";
 
 export interface MenuItem {
   key: string
@@ -15,8 +16,8 @@ export interface MenuItem {
 
 export const menuItems: MenuItem[] = [
   {
-    key: '/config/claude-code',
-    icon: () => h(SwapOutlined),
+    key: '/claude-code',
+    icon: () => h(RiClaudeFill, { size: '1rem'}),
     label: 'Claude Code',
     title: 'Claude Code'
   },
