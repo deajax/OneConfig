@@ -1,13 +1,18 @@
-import { ipcMain, app } from 'electron'
+import { ipcMain, app, BrowserWindow } from 'electron'
 import fs from 'fs-extra'
 import { homedir } from 'os'
-import { join, basename, extname } from 'path'
+import { join, extname } from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 const execAsync = promisify(exec)
 
-const PROVIDERS_PATH = join(app.getPath('userData'), 'providers.json')
-const PROVIDER_ICONS_PATH = join(app.getPath('userData'), 'provider-icons')
+// 开发环境：项目下的 src/renderer/data/，方便 IDE 编辑
+// 生产环境：用户主目录下的 ~/.OneConfig/，参照 Claude/OpenCode 做法
+const isDev = !app.isPackaged
+const ONECONFIG_DIR = isDev
+  ? join(app.getAppPath(), 'src/renderer/data')
+  : join(homedir(), '.OneConfig')
+const PROVIDERS_PATH = join(ONECONFIG_DIR, 'providers.json')
 const BLOCK_START = '# >>> OneConfig managed block >>>'
 const BLOCK_END = '# <<< OneConfig managed block <<<'
 const ALLOWED_SHELL_FILES = ['.zshrc', '.bashrc', '.bash_profile', '.profile', '.zprofile']
@@ -37,13 +42,27 @@ async function loadProviders(): Promise<ProvidersData> {
   try {
     if (await fs.pathExists(PROVIDERS_PATH)) {
       const raw = await fs.readFile(PROVIDERS_PATH, 'utf-8')
-      return JSON.parse(raw)
+      const parsed = JSON.parse(raw)
+      const data: ProvidersData = Array.isArray(parsed) ? { profiles: parsed } : parsed
+      // 迁移：为缺失 id 的 profile 补发 ID 并持久化
+      let changed = false
+      for (const p of data.profiles) {
+        if (!p.id) {
+          p.id = generateId()
+          changed = true
+        }
+      }
+      if (changed) {
+        await saveProviders(data)
+      }
+      return data
     }
   } catch {}
   return { profiles: [] }
 }
 
 async function saveProviders(data: ProvidersData): Promise<void> {
+  markProviderWrite()
   await fs.writeFile(PROVIDERS_PATH, JSON.stringify(data, null, 2), 'utf-8')
 }
 
@@ -58,6 +77,9 @@ function resolveShellFile(name: string): string | null {
 }
 
 export async function seedDefaultProviders(templatePath: string): Promise<void> {
+  // 确保数据目录存在
+  await fs.ensureDir(ONECONFIG_DIR)
+
   const data = await loadProviders()
   if (data.profiles.length > 0) return
 
@@ -82,7 +104,9 @@ export async function seedDefaultProviders(templatePath: string): Promise<void> 
   } catch {}
 }
 
-export function registerProviderHandlers() {
+export function registerProviderHandlers(win: BrowserWindow) {
+  startWatchingProviders(win)
+
   ipcMain.handle('providers:list', async () => {
     const data = await loadProviders()
     return data.profiles
@@ -185,38 +209,80 @@ export function registerProviderHandlers() {
     return { success: true }
   })
 
-  // 上传 Provider 图标
-  ipcMain.handle('providers:uploadIcon', async (_e, { fileName, data }: { fileName: string; data: string }) => {
-    await fs.ensureDir(PROVIDER_ICONS_PATH)
-    const ext = extname(fileName)
-    const safeName = `${Date.now()}_${basename(fileName).replace(/[^a-zA-Z0-9._-]/g, '_')}`
-    const dest = join(PROVIDER_ICONS_PATH, safeName)
-    const buffer = Buffer.from(data.split(',')[1], 'base64')
-    await fs.writeFile(dest, buffer)
-    return { success: true, fileName: safeName }
+  // 上传 Provider 图标：返回 base64 data URL，不写磁盘
+  ipcMain.handle('providers:uploadIcon', async (_e, { data }: { data: string }) => {
+    return { success: true, dataUrl: data }
   })
 
-  // 获取图标 base64 data URL
+  // 获取图标 base64 data URL（内置图标转 base64，已上传的直接返回）
   ipcMain.handle('providers:iconData', async (_e, { icon }: { icon: string }) => {
     if (!icon) return ''
+    // 已经是 data URL 直接返回
+    if (icon.startsWith('data:')) return icon
     // 内置图标：来自 assets 目录
     if (/\.(svg|png|jpe?g|gif|webp|ico)$/i.test(icon)) {
       const assetsPath = join(__dirname, '../../src/renderer/assets', icon)
       if (await fs.pathExists(assetsPath)) {
         const buf = await fs.readFile(assetsPath)
-        const ext = extname(icon).slice(1)
-        const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`
-        return `data:${mime};base64,${buf.toString('base64')}`
-      }
-      // 上传的图标：provider-icons 目录
-      const iconPath = join(PROVIDER_ICONS_PATH, icon)
-      if (await fs.pathExists(iconPath)) {
-        const buf = await fs.readFile(iconPath)
-        const ext = extname(icon).slice(1)
-        const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`
+        const mime = extname(icon).slice(1) === 'svg' ? 'image/svg+xml' : `image/${extname(icon).slice(1)}`
         return `data:${mime};base64,${buf.toString('base64')}`
       }
     }
     return ''
   })
+}
+
+// ── 文件监听：JSON 外部变更后通知渲染进程 ──
+let watcher: ReturnType<typeof fs.watch> | null = null
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let lastSelfWrite = 0
+
+/**
+ * 在 providers.json 变更时通过 IPC 通知渲染进程重新加载
+ * 用 lastSelfWrite 跳过自身写入产生的事件，debounce 200ms 避免多次触发
+ */
+export function startWatchingProviders(win: BrowserWindow) {
+  try {
+    // 如果文件还没创建（seedDefaultProviders 会在 createWindow 前创建），监听其所在目录
+    if (!fs.existsSync(PROVIDERS_PATH)) {
+      const dir = join(PROVIDERS_PATH, '..')
+      fs.ensureDirSync(dir)
+      const watcher = fs.watch(dir, { persistent: false }, (_, filename) => {
+        if (filename && filename.includes('providers.json')) {
+          watcher.close()
+          startWatchingProviders(win)
+        }
+      })
+      return
+    }
+
+    watcher = fs.watch(PROVIDERS_PATH, { persistent: false }, (event) => {
+      if (event === 'change') {
+        // 200ms 内如果是自身写入则忽略
+        const now = Date.now()
+        if (now - lastSelfWrite < 200) return
+        if (debounceTimer) clearTimeout(debounceTimer)
+        debounceTimer = setTimeout(() => {
+          win.webContents.send('providers:changed')
+        }, 200)
+      }
+    })
+    watcher.on('error', () => {
+      // 文件被删除或不可访问时静默忽略
+    })
+  } catch {
+    // 文件不存在或无法访问时不启动监听
+  }
+}
+
+export function stopWatchingProviders() {
+  watcher?.close()
+  watcher = null
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = null
+}
+
+/** 标记一次自身写入，使监听器忽略接下来的 200ms */
+export function markProviderWrite() {
+  lastSelfWrite = Date.now()
 }

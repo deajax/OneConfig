@@ -84,8 +84,12 @@ export const useProviderStore = defineStore('provider', () => {
     applied.value = true
   }
 
+  async function reload() {
+    profiles.value = await window.electronAPI.listProviders()
+  }
+
   return {
     profiles, loading, applied, activeProfile, hasConfiguredProvider,
-    loadProfiles, createProfile, updateProfile, deleteProfile, activateProfile, applyProfile, setModel, reset
+    loadProfiles, createProfile, updateProfile, deleteProfile, activateProfile, applyProfile, setModel, reset, reload
   }
 })

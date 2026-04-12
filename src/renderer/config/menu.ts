@@ -1,11 +1,5 @@
 import { h, type VNode } from 'vue'
-import {
-  SwapOutlined,
-  DatabaseOutlined,
-  CodeOutlined,
-  CodeSandboxOutlined
-} from '@ant-design/icons-vue'
-import { RiClaudeFill } from "@remixicon/vue";
+import { RiClaudeFill,  RiBracesLine, RiEqualizer2Line, RiTerminalBoxLine } from "@remixicon/vue";
 
 export interface MenuItem {
   key: string
@@ -23,19 +17,19 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: '/env',
-    icon: () => h(DatabaseOutlined),
+    icon: () => h( RiBracesLine, { size: '1rem'}),
     label: '环境变量',
     title: '环境变量'
   },
   {
     key: '/config',
-    icon: () => h(CodeOutlined),
+    icon: () => h(RiEqualizer2Line, { size: '1rem'}),
     label: '其他配置',
     title: '其他配置'
   },
   {
     key: '/terminal',
-    icon: () => h(CodeSandboxOutlined),
+    icon: () => h(RiTerminalBoxLine, { size: '1rem'}),
     label: '终端',
     title: '终端'
   }

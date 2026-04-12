@@ -33,7 +33,7 @@ function createWindow() {
   registerJsonHandlers(win)
   registerEnvHandlers()
   registerTerminalHandlers(win)
-  registerProviderHandlers()
+  registerProviderHandlers(win)
 
   if (isDev) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL']!)

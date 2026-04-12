@@ -40,4 +40,9 @@ const router = createRouter({
   ]
 })
 
+// 全局捕获路由错误，方便排查
+router.onError((err, to) => {
+  console.error(`[router] Navigation error to ${to.fullPath}:`, err)
+})
+
 export default router

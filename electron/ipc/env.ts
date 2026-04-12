@@ -64,6 +64,37 @@ export function registerEnvHandlers() {
     if (process.platform !== 'win32') return process.env[key] ?? null
     return process.env[key] ?? null
   })
+
+  // Windows: 列出所有系统环境变量（读取注册表不需要管理员权限）
+  ipcMain.handle('env:listSystem', async () => {
+    if (process.platform !== 'win32') throw new Error('仅支持 Windows')
+    const { execSync } = await import('child_process')
+    const output = execSync(
+      'reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"',
+      { encoding: 'utf8', windowsHide: true }
+    )
+    const envMap: Record<string, string> = {}
+    for (const line of output.split(/\r?\n/)) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('HK') || trimmed === '') continue
+      // Format: NAME    TYPE    VALUE  (tab or multi-space separated)
+      const parts = trimmed.split(/\s{2,}|\t/)
+      if (parts.length < 2) continue
+      const name = parts[0].trim()
+      const value = parts.length >= 3 ? parts.slice(2).join('  ').trim() : ''
+      if (value !== '') envMap[name] = value
+    }
+    return envMap
+  })
+
+  // Windows: 删除系统环境变量
+  ipcMain.handle('env:deleteSystem', async (_e, { key }: { key: string }) => {
+    if (process.platform !== 'win32') throw new Error('仅支持 Windows')
+    if (!/^[\w]+$/.test(key)) throw new Error('无效的变量名')
+    const cmd = `reg delete "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment" /v "${key}" /f`
+    await runAsAdmin(cmd, { name: 'OneConfig' })
+    return { success: true }
+  })
 }
 
 function escapeRegex(str: string): string {

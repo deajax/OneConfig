@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full bg-[#1a1a1a]">
+  <PageContainer>
     <!-- 终端会话标签栏 -->
     <div v-if="terminalStore.sessions.length > 0" class="flex items-center gap-1 px-2 py-1.5 bg-black/20 border-b border-white/5 shrink-0">
       <div
@@ -57,20 +57,18 @@
         </a-empty>
       </div>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
-import { h, onMounted, onUnmounted } from 'vue'
+import { h } from 'vue'
 import { ConsoleSqlOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { useTerminalStore } from '@/stores/terminalStore'
 import TerminalPane from '@/components/TerminalPane.vue'
+import PageContainer from '@/components/PageContainer.vue'
 
 const terminalStore = useTerminalStore()
 
-onMounted(() => {
-  terminalStore.loadSessions()
-})
 let sessionCounter = 0
 
 function openNewSession() {

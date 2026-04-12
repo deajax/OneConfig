@@ -108,11 +108,7 @@
 					/>
 				</a-layout-sider>
 				<a-layout-content class="overflow-hidden bg-white! rounded-tl-xl">
-					<router-view v-slot="{ Component }">
-						<transition name="fade" mode="out-in">
-							<component :is="Component" />
-						</transition>
-					</router-view>
+					<router-view :key="route.fullPath" />
 				</a-layout-content>
 			</a-layout>
 		</a-layout>
@@ -190,14 +186,13 @@
 	};
 
 	const collapsed = ref(true);
-	const selectedKeys = ref<string[]>([]);
+	const selectedKeys = ref<string[]>([route.path]);
 
 	watch(
 		() => route.path,
 		(path) => {
 			selectedKeys.value = [path];
-		},
-		{ immediate: true }
+		}
 	);
 
 	function handleMenuClick({ key }: { key: string }) {

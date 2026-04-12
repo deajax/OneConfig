@@ -1,2 +1,6 @@
 @import "tailwindcss/theme" layer(base);
 @import "tailwindcss/utilities";
+
+@theme {
+    --text-xxs: 0.625rem; /* 10px */
+}

@@ -14,11 +14,6 @@ const electronAPI = {
   saveJsonFileAs: (content: string): Promise<{ filePath: string } | null> =>
     ipcRenderer.invoke('json:saveAs', { content }),
 
-  // 模板
-  listTemplates: (): Promise<string[]> =>
-    ipcRenderer.invoke('json:listTemplates'),
-  loadTemplate: (name: string): Promise<{ schema: object; defaults: object } | null> =>
-    ipcRenderer.invoke('json:loadTemplate', { name }),
 
   // 持久化管理文件
   listManaged: (): Promise<{ id: string; name: string; path: string; addedAt: number }[]> =>
@@ -66,16 +61,25 @@ const electronAPI = {
     ipcRenderer.invoke('providers:activate', { id }),
   applyProvider: (shellFile: string): Promise<{ success: boolean; message?: string }> =>
     ipcRenderer.invoke('providers:apply', { shellFile }),
-  uploadProviderIcon: (fileName: string, data: string): Promise<{ success: boolean; fileName: string }> =>
-    ipcRenderer.invoke('providers:uploadIcon', { fileName, data }),
+  uploadProviderIcon: (data: string): Promise<{ success: boolean; dataUrl: string }> =>
+    ipcRenderer.invoke('providers:uploadIcon', { data }),
   getProviderIconData: (icon: string): Promise<string> =>
     ipcRenderer.invoke('providers:iconData', { icon }),
+  onProvidersChanged: (callback: () => void): (() => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('providers:changed', handler)
+    return () => ipcRenderer.removeListener('providers:changed', handler)
+  },
 
   // Windows 系统环境变量（仅 win32）
   setSystemEnv: (key: string, value: string): Promise<{ success: boolean }> =>
     ipcRenderer.invoke('env:setSystem', { key, value }),
   getSystemEnv: (key: string): Promise<string | null> =>
     ipcRenderer.invoke('env:getSystem', { key }),
+  listSystemEnv: (): Promise<Record<string, string>> =>
+    ipcRenderer.invoke('env:listSystem'),
+  deleteSystemEnv: (key: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('env:deleteSystem', { key }),
 
   // 工具
   platform: process.platform as NodeJS.Platform,
